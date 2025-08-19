@@ -98,18 +98,19 @@ export class ConfluenceSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Mermaid Image Format")
-			.setDesc("Choose how Mermaid diagrams are exported to Confluence")
+			.setName("Mermaid Diagram Quality")
+			.setDesc("PNG export quality for Mermaid diagrams (higher = better quality, larger files)")
 			.addDropdown((dropdown) => {
 				dropdown
 					.addOptions({
-						svg: "SVG (Scalable, Recommended)",
-						png: "PNG (Legacy, for older Confluence)",
+						low: "Low (1x scale, smallest files)",
+						medium: "Medium (1.5x scale, balanced)",
+						high: "High (2x scale, best quality)",
 					})
-					.setValue(this.plugin.settings.mermaidImageFormat || "svg")
+					.setValue(this.plugin.settings.mermaidQuality || "high")
 					.onChange(async (value) => {
 						// @ts-expect-error
-						this.plugin.settings.mermaidImageFormat = value;
+						this.plugin.settings.mermaidQuality = value;
 						await this.plugin.saveSettings();
 					});
 			});

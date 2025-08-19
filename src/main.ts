@@ -8,10 +8,7 @@ import {
 	MermaidRendererPlugin,
 	UploadAdfFileResult,
 } from "@markdown-confluence/lib";
-import { ElectronMermaidRenderer } from "@markdown-confluence/mermaid-electron-renderer";
-import { SVGMermaidRenderer } from "./SVGMermaidRenderer";
-import { MermaidCLIRenderer } from "./MermaidCLIRenderer";
-import { SVGMermaidRendererPlugin } from "./SVGMermaidRendererPlugin";
+import { MermaidPNGRenderer, PNGQuality } from "./MermaidPNGRenderer";
 import { ConfluenceSettingTab } from "./ConfluenceSettingTab";
 import ObsidianAdaptor from "./adaptors/obsidian";
 import { CompletedModal } from "./CompletedModal";
@@ -25,7 +22,7 @@ import { Mermaid } from "mermaid";
 
 export interface ObsidianPluginSettings
 	extends ConfluenceUploadSettings.ConfluenceSettings {
-	mermaidImageFormat?: "svg" | "png";  // Default to SVG for better quality
+	mermaidQuality?: PNGQuality;  // 'low' | 'medium' | 'high', defaults to 'high'
 }
 
 interface FailedFile {
@@ -67,33 +64,12 @@ export default class ConfluencePlugin extends Plugin {
 			this.app,
 		);
 
-		const mermaidItems = await this.getMermaidItems();
+		// Always use PNG now - Atlassian's SVG support is garbage after 20 years
+		const quality = this.settings.mermaidQuality || 'high';
+		const mermaidRenderer = new MermaidPNGRenderer(quality);
+		const mermaidPlugin = new MermaidRendererPlugin(mermaidRenderer);
 		
-		// Choose renderer based on user preference (default to SVG for better quality)
-		const useSVG = this.settings.mermaidImageFormat !== "png";
-		
-		// Create the appropriate renderer
-		let mermaidRenderer;
-		let mermaidPlugin;
-		
-		if (useSVG) {
-			// Use CLI renderer for SVG (more reliable than Obsidian's internal mermaid)
-			mermaidRenderer = new MermaidCLIRenderer();
-			// Use our custom SVG-aware plugin
-			mermaidPlugin = new SVGMermaidRendererPlugin(mermaidRenderer);
-		} else {
-			// Use Electron renderer for PNG
-			mermaidRenderer = new ElectronMermaidRenderer(
-				mermaidItems.extraStyleSheets,
-				mermaidItems.extraStyles,
-				mermaidItems.mermaidConfig,
-				mermaidItems.bodyStyles
-			);
-			// Use the standard plugin for PNG
-			mermaidPlugin = new MermaidRendererPlugin(mermaidRenderer);
-		}
-		
-		console.log("Using Mermaid renderer:", useSVG ? "SVG (CLI)" : "PNG (Electron)");
+		console.log(`Using PNG Mermaid renderer (quality: ${quality}) - because Atlassian can't handle SVG properly after 20 years`);
 		
 		console.log("Initializing Confluence client with:", {
 			host: this.settings.confluenceBaseUrl,
@@ -131,26 +107,6 @@ export default class ConfluencePlugin extends Plugin {
 		);
 	}
 
-	async getMermaidItems() {
-		// Simplified - no theme customization for Confluence compatibility
-		// Custom themes generate color formats (hsl, rgb) that Confluence can't render
-		const extraStyles: string[] = [];
-		const extraStyleSheets: string[] = [];
-		const bodyStyles = "";
-
-		// For PNG rendering only - add Obsidian styles
-		extraStyleSheets.push("app://obsidian.md/app.css");
-
-		// Get the default mermaid config - used only for PNG rendering
-		const defaultConfig = ((await loadMermaid()) as Mermaid).mermaidAPI.getConfig();
-
-		return {
-			extraStyleSheets,
-			extraStyles,
-			mermaidConfig: defaultConfig,  // Default config only, no custom themes
-			bodyStyles,
-		};
-	}
 
 	async doPublish(publishFilter?: string): Promise<UploadResults> {
 		console.log("Starting publish with filter:", publishFilter);
@@ -505,7 +461,7 @@ export default class ConfluencePlugin extends Plugin {
 			{},
 			ConfluenceUploadSettings.DEFAULT_SETTINGS,
 			{ 
-				mermaidImageFormat: "svg"  // Default to SVG for better quality
+				mermaidQuality: "high" as PNGQuality  // Default to high quality PNG
 			},
 			await this.loadData(),
 		);
