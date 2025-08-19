@@ -62,18 +62,15 @@ export class MermaidCLIRenderer implements MermaidRenderer {
 					}
 					
 					// Read the generated SVG
-					const svgContent = await fs.readFile(outputFile, 'utf-8');
+					let svgContent = await fs.readFile(outputFile, 'utf-8');
 					
-					// Clean up the SVG to ensure transparent background
-					let cleanedSvg = svgContent;
-					cleanedSvg = cleanedSvg.replace(/style="[^"]*background[^"]*"/gi, 'style=""');
-					cleanedSvg = cleanedSvg.replace(
-						/<svg/,
-						'<svg style="background: transparent"'
-					);
+					// Ensure the SVG has proper XML declaration for maximum compatibility
+					if (!svgContent.startsWith('<?xml')) {
+						svgContent = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgContent;
+					}
 					
 					// Convert to Buffer
-					const svgBuffer = Buffer.from(cleanedSvg, 'utf-8');
+					const svgBuffer = Buffer.from(svgContent, 'utf-8');
 					
 					// Store with the original chart name
 					capturedCharts.set(chart.name, svgBuffer);
