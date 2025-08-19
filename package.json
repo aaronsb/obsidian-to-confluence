@@ -11,9 +11,9 @@
         "lint": "eslint --ext .jsx,tsx,.js,.ts src/",
         "prettier-check": "npx prettier --check src/"
     },
-    "keywords": [],
-    "author": "andymac4182",
-    "license": "Apache 2.0",
+    "keywords": ["obsidian", "confluence", "atlassian", "publish", "sync"],
+    "author": "Aaron Bockelie (aaronsb)",
+    "license": "Apache-2.0",
     "devDependencies": {
         "@types/mime-types": "^2.1.4",
         "@types/node": "^22.10.7",
