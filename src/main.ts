@@ -121,6 +121,50 @@ export default class ConfluencePlugin extends Plugin {
 		let bodyStyles = "";
 		const body = document.querySelector("body") as HTMLBodyElement;
 
+		// Add CSS to make Mermaid backgrounds transparent and match Obsidian theme
+		const mermaidBackgroundFix = `
+			/* Remove all Mermaid backgrounds */
+			.mermaid {
+				background-color: transparent !important;
+				background: transparent !important;
+			}
+			.mermaid svg {
+				background-color: transparent !important;
+				background: transparent !important;
+			}
+			.mermaid .backgroundRect,
+			.mermaid .background {
+				fill: transparent !important;
+				fill-opacity: 0 !important;
+			}
+			/* Entity Relationship diagrams */
+			.mermaid rect.er {
+				fill: transparent !important;
+			}
+			/* Flowchart backgrounds */
+			.mermaid .cluster rect {
+				fill: transparent !important;
+				stroke: #888 !important;
+			}
+			/* Sequence diagram backgrounds */
+			.mermaid .sequenceNumber {
+				background-color: transparent !important;
+			}
+			/* Gantt chart backgrounds */
+			.mermaid .grid .tick line {
+				stroke: rgba(128, 128, 128, 0.2) !important;
+			}
+			/* State diagram backgrounds */
+			.mermaid .statediagram-state rect.basic {
+				fill: transparent !important;
+			}
+			/* Override any inline styles */
+			[style*="background"] {
+				background: transparent !important;
+			}
+		`;
+		extraStyles.push(mermaidBackgroundFix);
+
 		switch (this.settings.mermaidTheme) {
 			case "default":
 			case "neutral":
@@ -139,7 +183,7 @@ export default class ConfluencePlugin extends Plugin {
 				bodyStyles = "theme-dark";
 				break;
 			case "light-obsidian":
-				bodyStyles = "theme-dark";
+				bodyStyles = "theme-light";  // Fixed: was incorrectly set to theme-dark
 				break;
 			default:
 				throw new Error("Missing theme");
@@ -176,12 +220,31 @@ export default class ConfluencePlugin extends Plugin {
 			}
 		}
 
+		// Get the default mermaid config
+		const defaultConfig = ((await loadMermaid()) as Mermaid).mermaidAPI.getConfig();
+		
+		// Override theme based on Obsidian theme
+		let mermaidTheme = defaultConfig.theme;
+		if (this.settings.mermaidTheme === "light-obsidian" || 
+		    (this.settings.mermaidTheme === "match-obsidian" && !bodyStyles.includes("theme-dark"))) {
+			mermaidTheme = "default"; // Use light theme for light mode
+		} else if (this.settings.mermaidTheme === "dark-obsidian" || 
+		           (this.settings.mermaidTheme === "match-obsidian" && bodyStyles.includes("theme-dark"))) {
+			mermaidTheme = "dark"; // Use dark theme for dark mode
+		}
+
 		return {
 			extraStyleSheets,
 			extraStyles,
-			mermaidConfig: (
-				(await loadMermaid()) as Mermaid
-			).mermaidAPI.getConfig(),
+			mermaidConfig: {
+				...defaultConfig,
+				theme: mermaidTheme,
+				themeVariables: {
+					background: "transparent",
+					primaryColor: "transparent",
+					primaryBorderColor: "#888",
+				}
+			},
 			bodyStyles,
 		};
 	}
