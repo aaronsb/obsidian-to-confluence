@@ -5,7 +5,6 @@ import { promisify } from "util";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
-import { JSDOM } from "jsdom";
 
 const execAsync = promisify(exec);
 
@@ -91,10 +90,7 @@ export class MermaidCLIRenderer implements MermaidRenderer {
 						.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(parseInt(dec, 10)))
 						.replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
 					
-					// Parse SVG with JSDOM to properly handle color conversions
-					const dom = new JSDOM(svgContent, { contentType: 'image/svg+xml' });
-					const document = dom.window.document;
-					
+					// Convert color formats for Confluence compatibility
 					// Helper function to convert hsl to hex
 					const hslToHex = (h: number, s: number, l: number): string => {
 						l = l / 100;
@@ -113,84 +109,65 @@ export class MermaidCLIRenderer implements MermaidRenderer {
 						return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 					};
 					
-					// Function to convert color values in a string
-					const convertColors = (str: string): string => {
-						// Convert hsl()
-						str = str.replace(
-							/hsl\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)%\s*,\s*(\d+(?:\.\d+)?)%\s*\)/g,
-							(match, h, s, l) => {
-								try {
-									return hslToHex(parseFloat(h), parseFloat(s), parseFloat(l));
-								} catch {
-									return match;
+					// Convert hsl() colors - be specific to match CSS color functions
+					// Matches: hsl(80, 100%, 96.2745098039%)
+					svgContent = svgContent.replace(
+						/\bhsl\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)%\s*,\s*(\d+(?:\.\d+)?)%\s*\)/gi,
+						(match, h, s, l) => {
+							try {
+								const hue = parseFloat(h);
+								const sat = parseFloat(s);
+								const light = parseFloat(l);
+								// Validate ranges
+								if (hue >= 0 && hue <= 360 && sat >= 0 && sat <= 100 && light >= 0 && light <= 100) {
+									return hslToHex(hue, sat, light);
 								}
+								return match;
+							} catch {
+								return match;
 							}
-						);
-						
-						// Convert rgb()
-						str = str.replace(
-							/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/g,
-							(match, r, g, b) => {
-								try {
-									return rgbToHex(parseInt(r), parseInt(g), parseInt(b));
-								} catch {
-									return match;
+						}
+					);
+					
+					// Convert rgb() colors - be specific to match CSS color functions
+					// Matches: rgb(185, 185, 255)
+					svgContent = svgContent.replace(
+						/\brgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)/gi,
+						(match, r, g, b) => {
+							try {
+								const red = parseInt(r);
+								const green = parseInt(g);
+								const blue = parseInt(b);
+								// Validate ranges
+								if (red >= 0 && red <= 255 && green >= 0 && green <= 255 && blue >= 0 && blue <= 255) {
+									return rgbToHex(red, green, blue);
 								}
+								return match;
+							} catch {
+								return match;
 							}
-						);
-						
-						// Convert rgba() - drop alpha
-						str = str.replace(
-							/rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*[\d.]+\s*\)/g,
-							(match, r, g, b) => {
-								try {
-									return rgbToHex(parseInt(r), parseInt(g), parseInt(b));
-								} catch {
-									return match;
+						}
+					);
+					
+					// Convert rgba() colors - drop alpha since SVG handles opacity separately
+					// Matches: rgba(232, 232, 232, 0.8)
+					svgContent = svgContent.replace(
+						/\brgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*[\d.]+\s*\)/gi,
+						(match, r, g, b) => {
+							try {
+								const red = parseInt(r);
+								const green = parseInt(g);
+								const blue = parseInt(b);
+								// Validate ranges
+								if (red >= 0 && red <= 255 && green >= 0 && green <= 255 && blue >= 0 && blue <= 255) {
+									return rgbToHex(red, green, blue);
 								}
+								return match;
+							} catch {
+								return match;
 							}
-						);
-						
-						return str;
-					};
-					
-					// Process all style elements
-					const styleElements = document.querySelectorAll('style');
-					styleElements.forEach(style => {
-						if (style.textContent) {
-							style.textContent = convertColors(style.textContent);
 						}
-					});
-					
-					// Process all elements with style attributes
-					const elementsWithStyle = document.querySelectorAll('[style]');
-					elementsWithStyle.forEach(element => {
-						const style = element.getAttribute('style');
-						if (style) {
-							element.setAttribute('style', convertColors(style));
-						}
-					});
-					
-					// Process all elements with fill attributes
-					const elementsWithFill = document.querySelectorAll('[fill]');
-					elementsWithFill.forEach(element => {
-						const fill = element.getAttribute('fill');
-						if (fill) {
-							element.setAttribute('fill', convertColors(fill));
-						}
-					});
-					
-					// Process all elements with stroke attributes
-					const elementsWithStroke = document.querySelectorAll('[stroke]');
-					elementsWithStroke.forEach(element => {
-						const stroke = element.getAttribute('stroke');
-						if (stroke) {
-							element.setAttribute('stroke', convertColors(stroke));
-						}
-					});
-					
-					// Serialize back to string
-					svgContent = dom.serialize();
+					);
 					
 					// Ensure the SVG has proper XML declaration for maximum compatibility
 					if (!svgContent.startsWith('<?xml')) {
