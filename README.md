@@ -1,12 +1,6 @@
 # Obsidian Confluence Integration Plugin
 
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/markdown-confluence/markdown-confluence/badge)](https://api.securityscorecards.dev/projects/github.com/markdown-confluence/markdown-confluence)
-
-This is a fork of the original [obsidian-confluence](https://github.com/markdown-confluence/obsidian-confluence) plugin, updated to work with modern Obsidian and Node.js versions. The original project appears to have been abandoned in 2023.
-
-## Overview
-
-This plugin allows you to publish markdown content from Obsidian to [Atlassian Confluence](https://www.atlassian.com/software/confluence). It supports Obsidian markdown extensions and currently only works with Atlassian Cloud instances.
+This plugin allows you to publish markdown content from Obsidian to [Atlassian Confluence](https://www.atlassian.com/software/confluence). It supports Obsidian markdown extensions and works with Atlassian Cloud instances.
 
 ## Installation
 
@@ -128,46 +122,18 @@ Open Developer Console (`Ctrl+Shift+I` or `Cmd+Option+I`) to see:
 - Detailed error messages
 
 ### React Warnings
-These are cosmetic issues from the older codebase and don't affect functionality.
+These are cosmetic issues and don't affect functionality.
 
-## Known Limitations
+## Requirements
 
-- Only works with Atlassian Cloud (not Server/Data Center)
-- Uses unmaintained `@markdown-confluence` packages from 2023
-- Some Obsidian markdown features may not convert perfectly
-- Large vaults may take time to publish
-
-## Issues & Support
-
-### For This Fork
-- Issues: https://github.com/aaronsb/obsidian-to-confluence/issues
-- This is a community fork, not officially maintained
-
-### Original Project (Abandoned)
-- Original repo: https://github.com/markdown-confluence/obsidian-confluence
-- Last updated: 2023
-
-## Technical Details
-
-### Fork Changes (v5.5.x)
-- Fixed build system for modern Node.js
-- Updated dependencies where possible
-- Fixed React 18 compatibility
-- Added error handling and debug logging
-- Maintained compatibility with original `@markdown-confluence` packages
-
-### Requirements
 - Obsidian 1.0.0+
 - Atlassian Cloud instance
 - Confluence permissions to create/edit pages
 
+## Issues & Support
+
+Issues: https://github.com/aaronsb/obsidian-to-confluence/issues
+
 ## License
 
-Copyright (c) 2022 Atlassian Pty Ltd  
-Copyright (c) 2022 Atlassian US, Inc.
-
 Licensed under [Apache 2.0](LICENSE)
-
-## Disclaimer
-
-The Apache license applies only to this plugin code, not to Atlassian Confluence or any third-party services. You are responsible for obtaining appropriate licenses and complying with Atlassian's terms of service.
