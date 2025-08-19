@@ -39,7 +39,7 @@ export class MermaidCLIRenderer implements MermaidRenderer {
 					// that Confluence can't render properly
 					
 					// Run mermaid-cli to generate SVG with default theme
-					console.log(`Rendering Mermaid chart ${chart.name} with mermaid-cli (default theme)...`);
+					console.log(`[MermaidCLIRenderer v5.6.0h] Rendering Mermaid chart ${chart.name} with mermaid-cli (default theme)...`);
 					
 					// Build the command with proper arguments
 					// Note: -b for backgroundColor, -q for quiet mode
@@ -199,7 +199,14 @@ export class MermaidCLIRenderer implements MermaidRenderer {
 					// Store with the original chart name
 					capturedCharts.set(chart.name, svgBuffer);
 					
-					console.log(`Successfully rendered ${chart.name}`);
+					// Log conversion statistics
+				const finalRgbaCount = (svgContent.match(/rgba\(/g) || []).length;
+				const finalHslCount = (svgContent.match(/hsl\(/g) || []).length;
+				const finalCurrentColorCount = (svgContent.match(/currentColor/gi) || []).length;
+				const finalRevertCount = (svgContent.match(/revert/gi) || []).length;
+				
+				console.log(`[MermaidCLIRenderer v5.6.0h] Successfully rendered ${chart.name}`);
+				console.log(`  Post-processing stats: rgba=${finalRgbaCount}, hsl=${finalHslCount}, currentColor=${finalCurrentColorCount}, revert=${finalRevertCount}`);
 					
 				} catch (error) {
 					console.error(`Failed to render Mermaid chart ${chart.name}:`, error);
