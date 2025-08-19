@@ -6,29 +6,36 @@
     "type": "module",
     "scripts": {
         "dev": "node esbuild.config.mjs",
-        "build": "tsc && node esbuild.config.mjs production",
+        "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
         "fmt": "npx prettier --write src/",
-        "lint": "eslint --ignore-path ../../.eslintignore --ext .jsx,tsx,.js,.ts src/",
+        "lint": "eslint --ext .jsx,tsx,.js,.ts src/",
         "prettier-check": "npx prettier --check src/"
     },
     "keywords": [],
     "author": "andymac4182",
     "license": "Apache 2.0",
     "devDependencies": {
-        "@types/mime-types": "^2.1.1",
-        "@types/react-dom": "^18.0.11",
-        "obsidian": "1.1.1"
+        "@types/mime-types": "^2.1.4",
+        "@types/node": "^22.10.7",
+        "@types/react": "^18.3.20",
+        "@types/react-dom": "^18.3.5",
+        "@typescript-eslint/eslint-plugin": "^8.40.0",
+        "@typescript-eslint/parser": "^8.40.0",
+        "builtin-modules": "^4.0.0",
+        "esbuild": "^0.25.9",
+        "eslint": "^9.33.0",
+        "obsidian": "latest",
+        "prettier": "^3.4.2",
+        "tslib": "^2.8.1",
+        "typescript": "^5.9.2"
     },
     "dependencies": {
-        "confluence.js": "^1.6.3",
+        "@markdown-confluence/lib": "^5.5.2",
+        "@markdown-confluence/mermaid-electron-renderer": "^5.5.2",
+        "confluence.js": "^1.7.4",
+        "mermaid": "^11.10.0",
         "mime-types": "^2.1.35",
-        "react": "^16.14.0",
-        "react-dom": "^16.14.0",
-        "@markdown-confluence/lib": "5.5.2",
-        "@markdown-confluence/mermaid-electron-renderer": "5.5.2"
-    },
-    "resolutions": {
-        "prosemirror-model": "1.14.3"
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1"
     }
 }
-       

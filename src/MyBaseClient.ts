@@ -4,10 +4,29 @@ import {
 	Client,
 	Config,
 	RequestConfig,
-	AuthenticationService,
 } from "confluence.js";
 import { requestUrl } from "obsidian";
 import { RequiredConfluenceClient } from "@markdown-confluence/lib";
+
+async function getAuthenticationToken(
+	authentication: Config.Authentication | undefined,
+	requestData?: { baseURL: string; url: string; method: string }
+): Promise<string | undefined> {
+	if (!authentication) return undefined;
+	
+	if ('basic' in authentication && authentication.basic) {
+		if ('email' in authentication.basic && 'apiToken' in authentication.basic) {
+			const { email, apiToken } = authentication.basic;
+			return `Basic ${Buffer.from(`${email}:${apiToken}`).toString('base64')}`;
+		}
+		if ('username' in authentication.basic && 'password' in authentication.basic) {
+			const { username, password } = authentication.basic;
+			return `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+		}
+	}
+	
+	return undefined;
+}
 
 const ATLASSIAN_TOKEN_CHECK_FLAG = "X-Atlassian-Token";
 const ATLASSIAN_TOKEN_CHECK_NOCHECK_VALUE = "no-check";
@@ -128,7 +147,7 @@ export class MyBaseClient implements Client {
 						: undefined,
 					...this.config.baseRequestConfig?.headers,
 					Authorization:
-						await AuthenticationService.getAuthenticationToken(
+						await getAuthenticationToken(
 							this.config.authentication,
 							{
 								// eslint-disable-next-line @typescript-eslint/naming-convention
@@ -171,13 +190,10 @@ export class MyBaseClient implements Client {
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (e: any) {
 			console.warn({ httpError: e, requestConfig });
-			const err =
-				this.config.newErrorHandling && e.isAxiosError
-					? e.response.data
-					: e;
+			const err = e.isAxiosError && e.response ? e.response.data : e;
 
 			const callbackErrorHandler =
-				callback && ((error: Config.Error) => callback(error));
+				callback && ((error: any) => callback(error));
 			const defaultErrorHandler = (error: Error) => {
 				throw error;
 			};
