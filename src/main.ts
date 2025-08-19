@@ -51,7 +51,13 @@ export default class ConfluencePlugin extends Plugin {
 	adaptor!: ObsidianAdaptor;
 
 	activeLeafPath(workspace: Workspace) {
-		return workspace.getActiveViewOfType(MarkdownView)?.file?.path;
+		const activeView = workspace.getActiveViewOfType(MarkdownView);
+		if (activeView && activeView.file) {
+			console.log("Active file path:", activeView.file.path);
+			return activeView.file.path;
+		}
+		console.log("No active markdown file found");
+		return undefined;
 	}
 
 	async init() {
@@ -185,8 +191,19 @@ export default class ConfluencePlugin extends Plugin {
 		console.log("Settings:", {
 			baseUrl: this.settings.confluenceBaseUrl,
 			userName: this.settings.atlassianUserName,
-			hasApiToken: !!this.settings.atlassianApiToken
+			hasApiToken: !!this.settings.atlassianApiToken,
+			folderToPublish: this.settings.folderToPublish,
+			confluenceParentId: this.settings.confluenceParentId
 		});
+		
+		// If a specific file is provided, ensure it's passed correctly
+		if (publishFilter) {
+			console.log("Publishing specific file:", publishFilter);
+		} else if (this.settings.folderToPublish) {
+			console.log("Publishing folder:", this.settings.folderToPublish);
+		} else {
+			console.log("Warning: No specific file or folder to publish configured");
+		}
 		
 		const adrFiles = await this.publisher.publish(publishFilter);
 
@@ -221,6 +238,13 @@ export default class ConfluencePlugin extends Plugin {
 				new Notice("Syncing already on going");
 				return;
 			}
+			
+			// Check if folder to publish is configured
+			if (!this.settings.folderToPublish) {
+				new Notice("Please configure 'Folder to Publish' in plugin settings");
+				return;
+			}
+			
 			this.isSyncing = true;
 			try {
 				const stats = await this.doPublish();
@@ -288,8 +312,13 @@ export default class ConfluencePlugin extends Plugin {
 			checkCallback: (checking: boolean) => {
 				if (!this.isSyncing) {
 					if (!checking) {
+						const currentPath = this.activeLeafPath(this.workspace);
+						if (!currentPath) {
+							new Notice("No active markdown file to publish");
+							return false;
+						}
 						this.isSyncing = true;
-						this.doPublish(this.activeLeafPath(this.workspace))
+						this.doPublish(currentPath)
 							.then((stats) => {
 								new CompletedModal(this.app, {
 									uploadResults: stats,
@@ -330,6 +359,11 @@ export default class ConfluencePlugin extends Plugin {
 			checkCallback: (checking: boolean) => {
 				if (!this.isSyncing) {
 					if (!checking) {
+						// Check if folder to publish is configured
+						if (!this.settings.folderToPublish) {
+							new Notice("Please configure 'Folder to Publish' in plugin settings");
+							return false;
+						}
 						this.isSyncing = true;
 						this.doPublish()
 							.then((stats) => {
