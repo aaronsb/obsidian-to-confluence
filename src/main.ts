@@ -25,14 +25,6 @@ import { Mermaid } from "mermaid";
 
 export interface ObsidianPluginSettings
 	extends ConfluenceUploadSettings.ConfluenceSettings {
-	mermaidTheme:
-		| "match-obsidian"
-		| "light-obsidian"
-		| "dark-obsidian"
-		| "default"
-		| "neutral"
-		| "dark"
-		| "forest";
 	mermaidImageFormat?: "svg" | "png";  // Default to SVG for better quality
 }
 
@@ -86,7 +78,7 @@ export default class ConfluencePlugin extends Plugin {
 		
 		if (useSVG) {
 			// Use CLI renderer for SVG (more reliable than Obsidian's internal mermaid)
-			mermaidRenderer = new MermaidCLIRenderer(mermaidItems.mermaidConfig);
+			mermaidRenderer = new MermaidCLIRenderer();
 			// Use our custom SVG-aware plugin
 			mermaidPlugin = new SVGMermaidRendererPlugin(mermaidRenderer);
 		} else {
@@ -140,135 +132,22 @@ export default class ConfluencePlugin extends Plugin {
 	}
 
 	async getMermaidItems() {
+		// Simplified - no theme customization for Confluence compatibility
+		// Custom themes generate color formats (hsl, rgb) that Confluence can't render
 		const extraStyles: string[] = [];
 		const extraStyleSheets: string[] = [];
-		let bodyStyles = "";
-		const body = document.querySelector("body") as HTMLBodyElement;
+		const bodyStyles = "";
 
-		// Add CSS to make Mermaid backgrounds transparent and match Obsidian theme
-		const mermaidBackgroundFix = `
-			/* Remove all Mermaid backgrounds */
-			.mermaid {
-				background-color: transparent !important;
-				background: transparent !important;
-			}
-			.mermaid svg {
-				background-color: transparent !important;
-				background: transparent !important;
-			}
-			.mermaid .backgroundRect,
-			.mermaid .background {
-				fill: transparent !important;
-				fill-opacity: 0 !important;
-			}
-			/* Entity Relationship diagrams */
-			.mermaid rect.er {
-				fill: transparent !important;
-			}
-			/* Flowchart backgrounds */
-			.mermaid .cluster rect {
-				fill: transparent !important;
-				stroke: #888 !important;
-			}
-			/* Sequence diagram backgrounds */
-			.mermaid .sequenceNumber {
-				background-color: transparent !important;
-			}
-			/* Gantt chart backgrounds */
-			.mermaid .grid .tick line {
-				stroke: rgba(128, 128, 128, 0.2) !important;
-			}
-			/* State diagram backgrounds */
-			.mermaid .statediagram-state rect.basic {
-				fill: transparent !important;
-			}
-			/* Override any inline styles */
-			[style*="background"] {
-				background: transparent !important;
-			}
-		`;
-		extraStyles.push(mermaidBackgroundFix);
-
-		switch (this.settings.mermaidTheme) {
-			case "default":
-			case "neutral":
-			case "dark":
-			case "forest":
-				return {
-					extraStyleSheets,
-					extraStyles,
-					mermaidConfig: { theme: this.settings.mermaidTheme },
-					bodyStyles,
-				};
-			case "match-obsidian":
-				bodyStyles = body.className;
-				break;
-			case "dark-obsidian":
-				bodyStyles = "theme-dark";
-				break;
-			case "light-obsidian":
-				bodyStyles = "theme-light";  // Fixed: was incorrectly set to theme-dark
-				break;
-			default:
-				throw new Error("Missing theme");
-		}
-
+		// For PNG rendering only - add Obsidian styles
 		extraStyleSheets.push("app://obsidian.md/app.css");
 
-		// @ts-expect-error
-		const cssTheme = this.app.vault?.getConfig("cssTheme") as string;
-		if (cssTheme) {
-			const fileExists = await this.app.vault.adapter.exists(
-				`.obsidian/themes/${cssTheme}/theme.css`,
-			);
-			if (fileExists) {
-				const themeCss = await this.app.vault.adapter.read(
-					`.obsidian/themes/${cssTheme}/theme.css`,
-				);
-				extraStyles.push(themeCss);
-			}
-		}
-
-		const cssSnippets =
-			// @ts-expect-error
-			(this.app.vault?.getConfig("enabledCssSnippets") as string[]) ?? [];
-		for (const snippet of cssSnippets) {
-			const fileExists = await this.app.vault.adapter.exists(
-				`.obsidian/snippets/${snippet}.css`,
-			);
-			if (fileExists) {
-				const themeCss = await this.app.vault.adapter.read(
-					`.obsidian/snippets/${snippet}.css`,
-				);
-				extraStyles.push(themeCss);
-			}
-		}
-
-		// Get the default mermaid config
+		// Get the default mermaid config - used only for PNG rendering
 		const defaultConfig = ((await loadMermaid()) as Mermaid).mermaidAPI.getConfig();
-		
-		// Override theme based on Obsidian theme
-		let mermaidTheme = defaultConfig.theme;
-		if (this.settings.mermaidTheme === "light-obsidian" || 
-		    (this.settings.mermaidTheme === "match-obsidian" && !bodyStyles.includes("theme-dark"))) {
-			mermaidTheme = "default"; // Use light theme for light mode
-		} else if (this.settings.mermaidTheme === "dark-obsidian" || 
-		           (this.settings.mermaidTheme === "match-obsidian" && bodyStyles.includes("theme-dark"))) {
-			mermaidTheme = "dark"; // Use dark theme for dark mode
-		}
 
 		return {
 			extraStyleSheets,
 			extraStyles,
-			mermaidConfig: {
-				...defaultConfig,
-				theme: mermaidTheme,
-				themeVariables: {
-					background: "transparent",
-					primaryColor: "transparent",
-					primaryBorderColor: "#888",
-				}
-			},
+			mermaidConfig: defaultConfig,  // Default config only, no custom themes
 			bodyStyles,
 		};
 	}
@@ -626,7 +505,6 @@ export default class ConfluencePlugin extends Plugin {
 			{},
 			ConfluenceUploadSettings.DEFAULT_SETTINGS,
 			{ 
-				mermaidTheme: "match-obsidian",
 				mermaidImageFormat: "svg"  // Default to SVG for better quality
 			},
 			await this.loadData(),

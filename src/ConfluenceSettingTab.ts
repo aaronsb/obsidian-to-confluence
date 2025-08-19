@@ -98,30 +98,6 @@ export class ConfluenceSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Mermaid Diagram Theme")
-			.setDesc("Pick the theme to apply to mermaid diagrams")
-			.addDropdown((dropdown) => {
-				/* eslint-disable @typescript-eslint/naming-convention */
-				dropdown
-					.addOptions({
-						"match-obsidian": "Match Obsidian",
-						"light-obsidian": "Obsidian Theme - Light",
-						"dark-obsidian": "Obsidian Theme - Dark",
-						default: "Mermaid - Default",
-						neutral: "Mermaid - Neutral",
-						dark: "Mermaid - Dark",
-						forest: "Mermaid - Forest",
-					})
-					.setValue(this.plugin.settings.mermaidTheme)
-					.onChange(async (value) => {
-						// @ts-expect-error
-						this.plugin.settings.mermaidTheme = value;
-						await this.plugin.saveSettings();
-					});
-				/* eslint-enable @typescript-eslint/naming-convention */
-			});
-
-		new Setting(containerEl)
 			.setName("Mermaid Image Format")
 			.setDesc("Choose how Mermaid diagrams are exported to Confluence")
 			.addDropdown((dropdown) => {

@@ -9,10 +9,9 @@ import * as os from "os";
 const execAsync = promisify(exec);
 
 export class MermaidCLIRenderer implements MermaidRenderer {
-	private mermaidConfig: MermaidConfig;
-
 	constructor(mermaidConfig?: MermaidConfig) {
-		this.mermaidConfig = mermaidConfig || {};
+		// Ignoring mermaidConfig to ensure Confluence compatibility
+		// Custom themes generate hsl() and rgb() colors that Confluence can't render
 	}
 
 	async captureMermaidCharts(charts: ChartData[]): Promise<Map<string, Buffer>> {
@@ -31,28 +30,21 @@ export class MermaidCLIRenderer implements MermaidRenderer {
 					// Create input and output file paths
 					const inputFile = path.join(tempDir, `${baseName}.mmd`);
 					const outputFile = path.join(tempDir, `${baseName}.svg`);
-					const configFile = path.join(tempDir, 'config.json');
 					
 					// Write mermaid definition to file
 					await fs.writeFile(inputFile, chart.data, 'utf-8');
 					
-					// Write config if we have one
-					let configArgs = '';
-					if (this.mermaidConfig && this.mermaidConfig.theme) {
-						const config = {
-							theme: this.mermaidConfig.theme,
-							themeVariables: this.mermaidConfig.themeVariables || {}
-						};
-						await fs.writeFile(configFile, JSON.stringify(config), 'utf-8');
-						configArgs = ` -c "${configFile}"`;
-					}
+					// Skip custom config - use mermaid-cli defaults for compatibility
+					// Custom themes from Obsidian generate incompatible color formats (hsl, rgb)
+					// that Confluence can't render properly
 					
-					// Run mermaid-cli to generate SVG
-					console.log(`Rendering Mermaid chart ${chart.name} with mermaid-cli...`);
+					// Run mermaid-cli to generate SVG with default theme
+					console.log(`Rendering Mermaid chart ${chart.name} with mermaid-cli (default theme)...`);
 					
 					// Build the command with proper arguments
 					// Note: -b for backgroundColor, -q for quiet mode
-					const command = `npx --yes @mermaid-js/mermaid-cli@11 -i "${inputFile}" -o "${outputFile}" -b transparent -q${configArgs}`;
+					// Explicitly NOT passing any theme config to ensure compatibility
+					const command = `npx --yes @mermaid-js/mermaid-cli@11 -i "${inputFile}" -o "${outputFile}" -b transparent -q`;
 					
 					console.log(`Executing: ${command}`);
 					
