@@ -8,7 +8,7 @@ import {
 	MermaidRendererPlugin,
 	UploadAdfFileResult,
 } from "@markdown-confluence/lib";
-import { MermaidPNGRenderer, PNGQuality } from "./MermaidPNGRenderer";
+import { MermaidElectronPNGRenderer, PNGQuality } from "./MermaidElectronPNGRenderer";
 import { ConfluenceSettingTab } from "./ConfluenceSettingTab";
 import ObsidianAdaptor from "./adaptors/obsidian";
 import { CompletedModal } from "./CompletedModal";
@@ -66,10 +66,10 @@ export default class ConfluencePlugin extends Plugin {
 
 		// Always use PNG now - Atlassian's SVG support is garbage after 20 years
 		const quality = this.settings.mermaidQuality || 'high';
-		const mermaidRenderer = new MermaidPNGRenderer(quality);
+		const mermaidRenderer = new MermaidElectronPNGRenderer(quality);
 		const mermaidPlugin = new MermaidRendererPlugin(mermaidRenderer);
 		
-		console.log(`Using PNG Mermaid renderer (quality: ${quality}) - because Atlassian can't handle SVG properly after 20 years`);
+		console.log(`Using Electron PNG renderer (quality: ${quality}) - no external dependencies`);
 		
 		console.log("Initializing Confluence client with:", {
 			host: this.settings.confluenceBaseUrl,
