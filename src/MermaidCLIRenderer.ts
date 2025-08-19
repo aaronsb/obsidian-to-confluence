@@ -169,6 +169,25 @@ export class MermaidCLIRenderer implements MermaidRenderer {
 						}
 					);
 					
+					// Replace CSS keywords that Confluence doesn't support
+					// Replace 'currentColor' with explicit color (default to black)
+					svgContent = svgContent.replace(/\bcurrentColor\b/gi, '#000000');
+					
+					// Replace 'revert' with explicit value (default stroke width and color)
+					svgContent = svgContent.replace(/stroke:\s*revert/gi, 'stroke:#000000');
+					svgContent = svgContent.replace(/stroke-width:\s*revert/gi, 'stroke-width:1px');
+					svgContent = svgContent.replace(/fill:\s*revert/gi, 'fill:#000000');
+					
+					// Replace other CSS keywords that might cause issues
+					svgContent = svgContent.replace(/\binitial\b/gi, function(match, offset, string) {
+						// Look at the context to determine what property this is for
+						const before = string.substring(Math.max(0, offset - 50), offset);
+						if (before.includes('fill')) return '#000000';
+						if (before.includes('stroke')) return '#000000';
+						if (before.includes('stroke-width')) return '1px';
+						return match; // Keep as-is if we can't determine context
+					});
+					
 					// Ensure the SVG has proper XML declaration for maximum compatibility
 					if (!svgContent.startsWith('<?xml')) {
 						svgContent = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgContent;
