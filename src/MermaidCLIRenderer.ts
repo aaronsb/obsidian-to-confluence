@@ -25,38 +25,41 @@ export class MermaidCLIRenderer implements MermaidRenderer {
 			// Process each chart
 			for (const chart of charts) {
 				try {
+					// Remove .svg extension from chart name if present for file operations
+					const baseName = chart.name.replace(/\.svg$/, '');
+					
 					// Create input and output file paths
-					const inputFile = path.join(tempDir, `${chart.name}.mmd`);
-					const outputFile = path.join(tempDir, `${chart.name}.svg`);
+					const inputFile = path.join(tempDir, `${baseName}.mmd`);
+					const outputFile = path.join(tempDir, `${baseName}.svg`);
 					const configFile = path.join(tempDir, 'config.json');
 					
 					// Write mermaid definition to file
 					await fs.writeFile(inputFile, chart.data, 'utf-8');
 					
-					// Build command arguments
-					const args = [
-						'npx', '@mermaid-js/mermaid-cli@11',
-						'-i', inputFile,
-						'-o', outputFile,
-						'-f', 'svg',
-						'-b', 'transparent'
-					];
-					
-					// Write config and add config argument if we have one
-					if (this.mermaidConfig) {
+					// Write config if we have one
+					let configArgs = '';
+					if (this.mermaidConfig && this.mermaidConfig.theme) {
 						const config = {
-							theme: this.mermaidConfig.theme || 'default',
+							theme: this.mermaidConfig.theme,
 							themeVariables: this.mermaidConfig.themeVariables || {}
 						};
 						await fs.writeFile(configFile, JSON.stringify(config), 'utf-8');
-						args.push('-c', configFile);
+						configArgs = ` -c "${configFile}"`;
 					}
 					
 					// Run mermaid-cli to generate SVG
 					console.log(`Rendering Mermaid chart ${chart.name} with mermaid-cli...`);
 					
-					const command = args.join(' ');
-					await execAsync(command);
+					// Build the command with proper arguments
+					// Note: -b for backgroundColor, -q for quiet mode
+					const command = `npx --yes @mermaid-js/mermaid-cli@11 -i "${inputFile}" -o "${outputFile}" -b transparent -q${configArgs}`;
+					
+					console.log(`Executing: ${command}`);
+					
+					const { stdout, stderr } = await execAsync(command);
+					if (stderr && !stderr.includes('warn')) {
+						console.error(`mermaid-cli stderr: ${stderr}`);
+					}
 					
 					// Read the generated SVG
 					const svgContent = await fs.readFile(outputFile, 'utf-8');
