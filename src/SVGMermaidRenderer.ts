@@ -55,8 +55,8 @@ export class SVGMermaidRenderer implements MermaidRenderer {
 				// Convert SVG string to Buffer
 				const svgBuffer = Buffer.from(fullSvg, 'utf-8');
 				
-				// Store with .svg extension hint (the key is used as filename in some contexts)
-				capturedCharts.set(chart.name + '.svg', svgBuffer);
+				// Store with the original chart name (Publisher expects exact name)
+				capturedCharts.set(chart.name, svgBuffer);
 				
 			} catch (error) {
 				console.error(`Failed to render Mermaid chart ${chart.name}:`, error);
@@ -68,7 +68,7 @@ export class SVGMermaidRenderer implements MermaidRenderer {
 		Error rendering chart: ${chart.name}
 	</text>
 </svg>`;
-				capturedCharts.set(chart.name + '.svg', Buffer.from(errorSvg, 'utf-8'));
+				capturedCharts.set(chart.name, Buffer.from(errorSvg, 'utf-8'));
 			}
 		}
 

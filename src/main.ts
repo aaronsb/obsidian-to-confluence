@@ -10,6 +10,8 @@ import {
 } from "@markdown-confluence/lib";
 import { ElectronMermaidRenderer } from "@markdown-confluence/mermaid-electron-renderer";
 import { SVGMermaidRenderer } from "./SVGMermaidRenderer";
+import { MermaidCLIRenderer } from "./MermaidCLIRenderer";
+import { SVGMermaidRendererPlugin } from "./SVGMermaidRendererPlugin";
 import { ConfluenceSettingTab } from "./ConfluenceSettingTab";
 import ObsidianAdaptor from "./adaptors/obsidian";
 import { CompletedModal } from "./CompletedModal";
@@ -77,16 +79,29 @@ export default class ConfluencePlugin extends Plugin {
 		
 		// Choose renderer based on user preference (default to SVG for better quality)
 		const useSVG = this.settings.mermaidImageFormat !== "png";
-		const mermaidRenderer = useSVG
-			? new SVGMermaidRenderer(mermaidItems.mermaidConfig)
-			: new ElectronMermaidRenderer(
+		
+		// Create the appropriate renderer
+		let mermaidRenderer;
+		let mermaidPlugin;
+		
+		if (useSVG) {
+			// Use CLI renderer for SVG (more reliable than Obsidian's internal mermaid)
+			mermaidRenderer = new MermaidCLIRenderer(mermaidItems.mermaidConfig);
+			// Use our custom SVG-aware plugin
+			mermaidPlugin = new SVGMermaidRendererPlugin(mermaidRenderer);
+		} else {
+			// Use Electron renderer for PNG
+			mermaidRenderer = new ElectronMermaidRenderer(
 				mermaidItems.extraStyleSheets,
 				mermaidItems.extraStyles,
 				mermaidItems.mermaidConfig,
 				mermaidItems.bodyStyles
 			);
+			// Use the standard plugin for PNG
+			mermaidPlugin = new MermaidRendererPlugin(mermaidRenderer);
+		}
 		
-		console.log("Using Mermaid renderer:", useSVG ? "SVG" : "PNG");
+		console.log("Using Mermaid renderer:", useSVG ? "SVG (CLI)" : "PNG (Electron)");
 		
 		console.log("Initializing Confluence client with:", {
 			host: this.settings.confluenceBaseUrl,
@@ -120,7 +135,7 @@ export default class ConfluencePlugin extends Plugin {
 			this.adaptor,
 			settingsLoader,
 			confluenceClient,
-			[new MermaidRendererPlugin(mermaidRenderer)],
+			[mermaidPlugin],
 		);
 	}
 
