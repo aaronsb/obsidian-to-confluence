@@ -9,6 +9,7 @@ import {
 	UploadAdfFileResult,
 } from "@markdown-confluence/lib";
 import { ElectronMermaidRenderer } from "@markdown-confluence/mermaid-electron-renderer";
+import { SVGMermaidRenderer } from "./SVGMermaidRenderer";
 import { ConfluenceSettingTab } from "./ConfluenceSettingTab";
 import ObsidianAdaptor from "./adaptors/obsidian";
 import { CompletedModal } from "./CompletedModal";
@@ -30,6 +31,7 @@ export interface ObsidianPluginSettings
 		| "neutral"
 		| "dark"
 		| "forest";
+	mermaidImageFormat?: "svg" | "png";  // Default to SVG for better quality
 }
 
 interface FailedFile {
@@ -72,12 +74,19 @@ export default class ConfluencePlugin extends Plugin {
 		);
 
 		const mermaidItems = await this.getMermaidItems();
-		const mermaidRenderer = new ElectronMermaidRenderer(
-			mermaidItems.extraStyleSheets,
-			mermaidItems.extraStyles,
-			mermaidItems.mermaidConfig,
-			mermaidItems.bodyStyles,
-		);
+		
+		// Choose renderer based on user preference (default to SVG for better quality)
+		const useSVG = this.settings.mermaidImageFormat !== "png";
+		const mermaidRenderer = useSVG
+			? new SVGMermaidRenderer(mermaidItems.mermaidConfig)
+			: new ElectronMermaidRenderer(
+				mermaidItems.extraStyleSheets,
+				mermaidItems.extraStyles,
+				mermaidItems.mermaidConfig,
+				mermaidItems.bodyStyles
+			);
+		
+		console.log("Using Mermaid renderer:", useSVG ? "SVG" : "PNG");
 		
 		console.log("Initializing Confluence client with:", {
 			host: this.settings.confluenceBaseUrl,
@@ -601,7 +610,10 @@ export default class ConfluencePlugin extends Plugin {
 		this.settings = Object.assign(
 			{},
 			ConfluenceUploadSettings.DEFAULT_SETTINGS,
-			{ mermaidTheme: "match-obsidian" },
+			{ 
+				mermaidTheme: "match-obsidian",
+				mermaidImageFormat: "svg"  // Default to SVG for better quality
+			},
 			await this.loadData(),
 		);
 	}

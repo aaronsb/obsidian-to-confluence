@@ -120,5 +120,22 @@ export class ConfluenceSettingTab extends PluginSettingTab {
 					});
 				/* eslint-enable @typescript-eslint/naming-convention */
 			});
+
+		new Setting(containerEl)
+			.setName("Mermaid Image Format")
+			.setDesc("Choose how Mermaid diagrams are exported to Confluence")
+			.addDropdown((dropdown) => {
+				dropdown
+					.addOptions({
+						svg: "SVG (Scalable, Recommended)",
+						png: "PNG (Legacy, for older Confluence)",
+					})
+					.setValue(this.plugin.settings.mermaidImageFormat || "svg")
+					.onChange(async (value) => {
+						// @ts-expect-error
+						this.plugin.settings.mermaidImageFormat = value;
+						await this.plugin.saveSettings();
+					});
+			});
 	}
 }
