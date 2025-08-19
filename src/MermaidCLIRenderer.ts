@@ -5,6 +5,7 @@ import { promisify } from "util";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
+import { JSDOM } from "jsdom";
 
 const execAsync = promisify(exec);
 
@@ -89,6 +90,107 @@ export class MermaidCLIRenderer implements MermaidRenderer {
 					svgContent = svgContent
 						.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(parseInt(dec, 10)))
 						.replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+					
+					// Parse SVG with JSDOM to properly handle color conversions
+					const dom = new JSDOM(svgContent, { contentType: 'image/svg+xml' });
+					const document = dom.window.document;
+					
+					// Helper function to convert hsl to hex
+					const hslToHex = (h: number, s: number, l: number): string => {
+						l = l / 100;
+						const a = s * Math.min(l, 1 - l) / 100;
+						const f = (n: number) => {
+							const k = (n + h / 30) % 12;
+							const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+							return Math.round(255 * color).toString(16).padStart(2, '0');
+						};
+						return `#${f(0)}${f(8)}${f(4)}`;
+					};
+					
+					// Helper function to convert rgb to hex
+					const rgbToHex = (r: number, g: number, b: number): string => {
+						const toHex = (n: number) => n.toString(16).padStart(2, '0');
+						return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+					};
+					
+					// Function to convert color values in a string
+					const convertColors = (str: string): string => {
+						// Convert hsl()
+						str = str.replace(
+							/hsl\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)%\s*,\s*(\d+(?:\.\d+)?)%\s*\)/g,
+							(match, h, s, l) => {
+								try {
+									return hslToHex(parseFloat(h), parseFloat(s), parseFloat(l));
+								} catch {
+									return match;
+								}
+							}
+						);
+						
+						// Convert rgb()
+						str = str.replace(
+							/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/g,
+							(match, r, g, b) => {
+								try {
+									return rgbToHex(parseInt(r), parseInt(g), parseInt(b));
+								} catch {
+									return match;
+								}
+							}
+						);
+						
+						// Convert rgba() - drop alpha
+						str = str.replace(
+							/rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*[\d.]+\s*\)/g,
+							(match, r, g, b) => {
+								try {
+									return rgbToHex(parseInt(r), parseInt(g), parseInt(b));
+								} catch {
+									return match;
+								}
+							}
+						);
+						
+						return str;
+					};
+					
+					// Process all style elements
+					const styleElements = document.querySelectorAll('style');
+					styleElements.forEach(style => {
+						if (style.textContent) {
+							style.textContent = convertColors(style.textContent);
+						}
+					});
+					
+					// Process all elements with style attributes
+					const elementsWithStyle = document.querySelectorAll('[style]');
+					elementsWithStyle.forEach(element => {
+						const style = element.getAttribute('style');
+						if (style) {
+							element.setAttribute('style', convertColors(style));
+						}
+					});
+					
+					// Process all elements with fill attributes
+					const elementsWithFill = document.querySelectorAll('[fill]');
+					elementsWithFill.forEach(element => {
+						const fill = element.getAttribute('fill');
+						if (fill) {
+							element.setAttribute('fill', convertColors(fill));
+						}
+					});
+					
+					// Process all elements with stroke attributes
+					const elementsWithStroke = document.querySelectorAll('[stroke]');
+					elementsWithStroke.forEach(element => {
+						const stroke = element.getAttribute('stroke');
+						if (stroke) {
+							element.setAttribute('stroke', convertColors(stroke));
+						}
+					});
+					
+					// Serialize back to string
+					svgContent = dom.serialize();
 					
 					// Ensure the SVG has proper XML declaration for maximum compatibility
 					if (!svgContent.startsWith('<?xml')) {
