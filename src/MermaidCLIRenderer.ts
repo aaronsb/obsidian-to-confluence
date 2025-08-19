@@ -64,6 +64,40 @@ export class MermaidCLIRenderer implements MermaidRenderer {
 					// Read the generated SVG
 					let svgContent = await fs.readFile(outputFile, 'utf-8');
 					
+					// Decode all HTML entities that mermaid-cli might add
+					// This is crucial for SVG to be valid XML
+					const htmlEntityMap: { [key: string]: string } = {
+						'&gt;': '>',
+						'&lt;': '<',
+						'&amp;': '&',
+						'&quot;': '"',
+						'&apos;': "'",
+						'&#39;': "'",
+						'&#x27;': "'",
+						'&#x2F;': '/',
+						'&#x60;': '`',
+						'&#x3D;': '=',
+						'&nbsp;': ' ',
+						'&copy;': '©',
+						'&reg;': '®',
+						'&trade;': '™',
+						'&euro;': '€',
+						'&pound;': '£',
+						'&yen;': '¥',
+						'&cent;': '¢'
+					};
+					
+					// Replace all HTML entities
+					for (const [entity, char] of Object.entries(htmlEntityMap)) {
+						const regex = new RegExp(entity.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+						svgContent = svgContent.replace(regex, char);
+					}
+					
+					// Also handle numeric entities (both decimal and hex)
+					svgContent = svgContent
+						.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(parseInt(dec, 10)))
+						.replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+					
 					// Ensure the SVG has proper XML declaration for maximum compatibility
 					if (!svgContent.startsWith('<?xml')) {
 						svgContent = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgContent;
