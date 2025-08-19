@@ -72,6 +72,13 @@ export default class ConfluencePlugin extends Plugin {
 			mermaidItems.mermaidConfig,
 			mermaidItems.bodyStyles,
 		);
+		
+		console.log("Initializing Confluence client with:", {
+			host: this.settings.confluenceBaseUrl,
+			email: this.settings.atlassianUserName,
+			hasApiToken: !!this.settings.atlassianApiToken
+		});
+		
 		const confluenceClient = new ObsidianConfluenceClient({
 			host: this.settings.confluenceBaseUrl,
 			authentication: {
@@ -82,6 +89,7 @@ export default class ConfluencePlugin extends Plugin {
 			},
 			middlewares: {
 				onError(e) {
+					console.error("Confluence API Error:", e);
 					if ("response" in e && e.response && "data" in e.response) {
 						e.message =
 							typeof e.response.data === "string"
@@ -173,6 +181,13 @@ export default class ConfluencePlugin extends Plugin {
 	}
 
 	async doPublish(publishFilter?: string): Promise<UploadResults> {
+		console.log("Starting publish with filter:", publishFilter);
+		console.log("Settings:", {
+			baseUrl: this.settings.confluenceBaseUrl,
+			userName: this.settings.atlassianUserName,
+			hasApiToken: !!this.settings.atlassianApiToken
+		});
+		
 		const adrFiles = await this.publisher.publish(publishFilter);
 
 		const returnVal: UploadResults = {

@@ -1,5 +1,6 @@
 import { Modal, App } from "obsidian";
 import ReactDOM from "react-dom";
+import { createRoot, Root } from "react-dom/client";
 import React, { useState } from "react";
 import { UploadAdfFileResult } from "@markdown-confluence/lib";
 
@@ -138,6 +139,7 @@ const CompletedView: React.FC<UploadResultsProps> = ({ uploadResults }) => {
 
 export class CompletedModal extends Modal {
 	uploadResults: UploadResultsProps;
+	root: Root | null = null;
 
 	constructor(app: App, uploadResults: UploadResultsProps) {
 		super(app);
@@ -146,15 +148,18 @@ export class CompletedModal extends Modal {
 
 	override onOpen() {
 		const { contentEl } = this;
-		ReactDOM.render(
-			React.createElement(CompletedView, this.uploadResults),
-			contentEl,
+		this.root = createRoot(contentEl);
+		this.root.render(
+			React.createElement(CompletedView, this.uploadResults)
 		);
 	}
 
 	override onClose() {
+		if (this.root) {
+			this.root.unmount();
+			this.root = null;
+		}
 		const { contentEl } = this;
-		ReactDOM.unmountComponentAtNode(contentEl);
 		contentEl.empty();
 	}
 }
